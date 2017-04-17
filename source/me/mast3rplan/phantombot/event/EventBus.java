@@ -16,60 +16,106 @@
  */
 package me.mast3rplan.phantombot.event;
 
-import com.google.common.collect.Sets;
-import java.util.Set;
 import java.util.concurrent.Executors;
-import me.mast3rplan.phantombot.PhantomBot;
+
+import net.engio.mbassy.bus.MBassador;
+import net.engio.mbassy.bus.config.Feature;
+import net.engio.mbassy.bus.config.BusConfiguration;
+import net.engio.mbassy.bus.config.IBusConfiguration;
 
 public class EventBus {
-
     private static final EventBus instance = new EventBus();
+    private final MBassador bus;
+    private boolean killed = false;
 
+    /*
+     * Constructor for this class
+     */
+    private EventBus() {
+        // Create bus.
+        this.bus = new MBassador(new BusConfiguration()
+            .addFeature(Feature.SyncPubSub.Default())
+            .addFeature(Feature.AsynchronousHandlerInvocation.Default())
+            .addFeature(Feature.AsynchronousMessageDispatch.Default())
+            .addPublicationErrorHandler(new ExceptionHandler())
+            .setProperty(IBusConfiguration.Properties.BusId, "me.mast3rplan.phantombot.event.EventBus::bus"));
+    }
+
+    /*
+     * @function instance
+     *
+     * @return Object
+     */
     public static EventBus instance() {
         return instance;
     }
 
-    private final com.google.common.eventbus.AsyncEventBus aeventBus = new com.google.common.eventbus.AsyncEventBus(Executors.newFixedThreadPool(16), new ExceptionHandler());
-    private final com.google.common.eventbus.EventBus eventBus = new com.google.common.eventbus.EventBus(new ExceptionHandler());
-    private final com.google.common.eventbus.EventBus peventBus = new com.google.common.eventbus.EventBus(new ExceptionHandler());
-
-    private final Set<Listener> listeners = Sets.newHashSet();
-
+    /*
+     * @function register
+     *
+     * @param {Listener} listener
+     */
     public void register(Listener listener) {
-        listeners.add(listener);
-        eventBus.register(listener);
-        aeventBus.register(listener);
-        peventBus.register(listener);
+        this.bus.subscribe(listener);
     }
 
+    /*
+     * @function unregister
+     *
+     * @param {Listener} listener
+     */
     public void unregister(Listener listener) {
-        listeners.remove(listener);
-        eventBus.unregister(listener);
-        aeventBus.unregister(listener);
-        peventBus.unregister(listener);
+        this.bus.unsubscribe(listener);
     }
 
-    public void post(Event event) {
-        if (PhantomBot.instance() == null || PhantomBot.instance().isExiting()) {
-            return;
-        }
-
-        eventBus.post(event);
-    }
-
+    /*
+     * @function postAsync
+     *
+     * @param {Event} event
+     */
+    @SuppressWarnings("unchecked")
     public void postAsync(Event event) {
-        if (PhantomBot.instance() == null || PhantomBot.instance().isExiting()) {
-            return;
+        if (!killed) {
+            this.bus.publishAsync(event);
         }
-
-        aeventBus.post(event);
     }
 
-    public void postPVMSG(Event event) {
-        if (PhantomBot.instance() == null || PhantomBot.instance().isExiting()) {
-            return;
+    /*
+     * @function post
+     *
+     * @param {Event} event
+     */
+    @SuppressWarnings("unchecked")
+    public void post(Event event) {
+        if (!killed) {
+            this.bus.publish(event);
         }
+    }
 
-        peventBus.post(event);
+    /*
+     * @function kill
+     */
+    public void kill() {
+        this.killed = true;
     }
 }
+
+/*
+ * This goes in the ScriptEventManager class.
+ *
+ *   @Handler
+ *   public void synchronousHandler(Event event) {
+ *       try {
+ *           for (EventHandlerEntry entry : entries) {
+ *               if (event.getClass().isAssignableFrom(entry.eventClass)) {                
+ *                   entry.handler.handle(event);
+ *                   com.gmt2001.Console.debug.println("Dispatching event " + entry.eventClass.getName());
+ *               }
+ *           }
+ *       } catch (Exception e) {
+ *           com.gmt2001.Console.err.println("Failed to dispatch event " + event.getClass().getName());
+ *           com.gmt2001.Console.err.printStackTrace(e);
+ *       }
+ *  }
+ */
+

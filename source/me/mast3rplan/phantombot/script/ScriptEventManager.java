@@ -26,6 +26,8 @@ import me.mast3rplan.phantombot.event.Event;
 import me.mast3rplan.phantombot.event.Listener;
 import org.apache.commons.lang3.text.WordUtils;
 
+import net.engio.mbassy.listener.Handler;
+
 public class ScriptEventManager implements Listener {
 
     private static final ScriptEventManager instance = new ScriptEventManager();
@@ -109,6 +111,21 @@ public class ScriptEventManager implements Listener {
                 if (event.getClass().isAssignableFrom(entry.eventClass)) {
                     entry.handler.handle(event);
                     com.gmt2001.Console.debug.println("Dispatched event " + entry.eventClass.getName());
+                }
+            }
+        } catch (Exception e) {
+            com.gmt2001.Console.err.println("Failed to dispatch event " + event.getClass().getName());
+            com.gmt2001.Console.err.printStackTrace(e);
+        }
+    }
+
+    @Handler
+    public void synchronousHandler(Event event) {
+        try {
+            for (EventHandlerEntry entry : entries) {
+                if (event.getClass().isAssignableFrom(entry.eventClass)) {                
+                    entry.handler.handle(event);
+                    com.gmt2001.Console.debug.println("Dispatching event " + entry.eventClass.getName());
                 }
             }
         } catch (Exception e) {

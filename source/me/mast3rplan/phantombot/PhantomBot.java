@@ -116,6 +116,8 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.commons.lang3.SystemUtils;
 
+import net.engio.mbassy.listener.Handler;
+
 public final class PhantomBot implements Listener {
     /* Bot Information */
     private String botName;
@@ -1096,7 +1098,7 @@ public final class PhantomBot implements Listener {
      * Connected to Twitch.
      *
      */
-    @Subscribe
+    @Handler
     public void ircJoinComplete(IrcJoinCompleteEvent event) {
         /* Check if the bot already joined once. */
         if (joined) {
@@ -1160,7 +1162,7 @@ public final class PhantomBot implements Listener {
      * Get private messages from Twitch.
      *
      */
-    @Subscribe
+    @Handler
     public void ircPrivateMessage(IrcPrivateMessageEvent event) {
         String sender = event.getSender();
         String message = event.getMessage();
@@ -1186,7 +1188,7 @@ public final class PhantomBot implements Listener {
      * user modes from twitch
      *
      */
-    @Subscribe
+    @Handler
     public void ircUserMode(IrcChannelUserModeEvent event) {
         /* Check to see if Twitch sent a mode event for the bot name */
         if (event.getUser().equalsIgnoreCase(this.botName) && event.getMode().equalsIgnoreCase("o")) {
@@ -1202,7 +1204,7 @@ public final class PhantomBot implements Listener {
      * messages from Twitch chat
      *
      */
-    @Subscribe
+    @Handler
     public void ircChannelMessage(IrcChannelMessageEvent event) {
         if (event.getMessage().startsWith("!debug !dev")) {
             devDebugCommands(event.getMessage(), event.getTags().get("user-id"), event.getSender(), false);
@@ -1217,7 +1219,7 @@ public final class PhantomBot implements Listener {
      * Check to see if someone is typing in the console.
      *
      */
-    @Subscribe
+    @Handler
     public void consoleInput(ConsoleInputEvent event) {
         String message = event.getMsg();
         Boolean changed = false;
